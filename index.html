@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devlet-i Ebed Müddet | Pro Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;1,700&display=swap');
+
+        :root {
+            --gold: #D4AF37;
+            --dark-red: #4A0404;
+            --paper: #f4e4bc;
+            --ink: #1a1a1a;
+            --soft-transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: #0a0a0a;
+            margin: 0; display: flex; justify-content: center; align-items: center;
+            height: 100vh; font-family: 'Playfair Display', serif; overflow: hidden;
+        }
+
+        body::before {
+            content: ""; position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, #2a0000 0%, #000 100%);
+            opacity: 0.6; z-index: -1;
+        }
+
+        /* İstatistik Paneli */
+        #top-bar {
+            position: absolute; top: 0; width: 100%;
+            background: linear-gradient(to bottom, #3b0000, #150000);
+            border-bottom: 2px solid var(--gold);
+            display: flex; justify-content: center; gap: 50px; padding: 15px 0;
+            z-index: 100; box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+        }
+
+        .stat { color: var(--gold); font-family: 'Cinzel', serif; text-align: center; }
+        .stat span { display: block; color: #fff; font-size: 1.4em; font-weight: bold; }
+
+        /* Oyun Alanı */
+        #stage { perspective: 2000px; width: 100%; display: flex; justify-content: center; align-items: center; }
+
+        /* Rulo Efekti */
+        .ferman-rulo {
+            width: 100px; height: 450px;
+            background: var(--paper) url('https://www.transparenttextures.com/patterns/aged-paper.png');
+            border-left: 15px solid #8b6e4e; border-right: 15px solid #8b6e4e;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7); border-radius: 50px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: var(--soft-transition);
+        }
+        .ferman-rulo:hover { transform: scale(1.05) rotate(1deg); }
+        .ferman-rulo span { transform: rotate(90deg); white-space: nowrap; font-family: 'Cinzel'; font-weight: bold; color: var(--dark-red); }
+
+        /* Açık Ferman */
+        .ferman-acik {
+            width: 800px; max-height: 85vh;
+            background: var(--paper) url('https://www.transparenttextures.com/patterns/aged-paper.png');
+            border: 10px double var(--gold); padding: 40px;
+            box-shadow: 0 0 100px rgba(0,0,0,1);
+            overflow-y: auto; display: none; opacity: 0;
+            transition: var(--soft-transition);
+        }
+        .ferman-acik.active { display: block; opacity: 1; animation: unroll 0.8s ease-out; }
+
+        @keyframes unroll {
+            from { transform: scaleX(0); opacity: 0; }
+            to { transform: scaleX(1); opacity: 1; }
+        }
+
+        /* İçerik */
+        #event-img { width: 100%; height: 200px; object-fit: cover; border: 2px solid var(--gold); margin-bottom: 20px; }
+        h1 { font-family: 'Cinzel'; color: var(--dark-red); text-align: center; margin-top: 0; }
+        p { font-size: 1.2em; line-height: 1.6; text-align: center; margin-bottom: 30px; }
+
+        .btn-box { display: flex; flex-direction: column; gap: 10px; }
+        .choice-btn {
+            background: #1a1a1a; color: var(--gold); border: 1px solid var(--gold);
+            padding: 15px; font-family: 'Cinzel'; cursor: pointer; transition: 0.3s;
+        }
+        .choice-btn:hover { background: var(--dark-red); color: white; }
+
+        /* Alt Yazı */
+        .footer {
+            position: absolute; bottom: 10px; width: 100%; text-align: center;
+            color: rgba(212, 175, 55, 0.4); font-size: 0.8em; font-family: 'Cinzel';
+        }
+
+        #final-credits { margin-top: 30px; border-top: 1px solid var(--dark-red); padding-top: 20px; font-weight: bold; color: var(--dark-red); }
+    </style>
+</head>
+<body>
+
+<div id="top-bar">
+    <div class="stat">HAZİNE <span id="hazine">60</span></div>
+    <div class="stat">ORDU <span id="ordu">60</span></div>
+    <div class="stat">HALK <span id="halk">60</span></div>
+    <div class="stat">ULEMA <span id="ulema">60</span></div>
+</div>
+
+<div id="stage">
+    <div id="rulo" class="ferman-rulo" onclick="acMektubu()">
+        <span>📜 YENİ FERMANI AÇ</span>
+    </div>
+
+    <div id="mektup" class="ferman-acik">
+        <div id="content">
+            <h1 id="title"></h1>
+            <img id="event-img" src="" alt="">
+            <p id="desc"></p>
+            <div id="choices" class="btn-box"></div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">Questions by Hacer, Arda | Developed by Ata | Conduct by Nadir Eymen</div>
+
+<script>
+    let stats = { hazine: 60, ordu: 60, halk: 60, ulema: 60 };
+    let step = 0;
+
+    const scenarios = [
+        { t: "Matbaa-i Amire (1727)", d: "İbrahim Müteferrika matbaa kurmak için izin istiyor. Hattatlar isyan başlatabilir, ulema ise 'kutsal metinler basılamaz' diyor.", i: "https://picsum.photos/seed/print1/800/400", o: [{ n: "İzin Ver", im: {hazine:-10, ordu:0, halk:20, ulema:-20} }, { n: "Reddet", im: {hazine:0, ordu:0, halk:-10, ulema:15} }] },
+        { t: "Yalova Kağıt Fabrikası", d: "Yerli kağıt üretimi için fabrika kurulmalı mı? Dışa bağımlılık azalır ama hazine yükü biner.", i: "https://picsum.photos/seed/paper/800/400", o: [{ n: "Fabrikayı Kur", im: {hazine:-20, ordu:0, halk:15, ulema:0} }, { n: "İthalat İyidir", im: {hazine:-5, ordu:0, halk:-5, ulema:0} }] },
+        { t: "Patrona Halil İsyanı (1730)", d: "İsyan büyüyor! Sadrazamı feda ederek tahtınızı koruyacak mısınız?", i: "https://picsum.photos/seed/riot/800/400", o: [{ n: "Sadrazamı Feda Et", im: {hazine:0, ordu:-10, halk:25, ulema:10} }, { n: "Sertçe Bastır", im: {hazine:-5, ordu:20, halk:-30, ulema:-10} }] },
+        { t: "Nizam-ı Cedid (1792)", d: "III. Selim modern bir ordu kurmak istiyor. Yeniçeriler bu durumdan nefret ediyor.", i: "https://picsum.photos/seed/army1/800/400", o: [{ n: "Orduyu Kur", im: {hazine:-25, ordu:30, halk:-5, ulema:-15} }, { n: "Geri Adım At", im: {hazine:5, ordu:-20, halk:5, ulema:15} }] },
+        { t: "Mısır'ın İşgali (1798)", d: "Napolyon Mısır'a girdi. İngiltere'den yardım isteyelim mi?", i: "https://picsum.photos/seed/egypt/800/400", o: [{ n: "İngilizlerle Anlaş", im: {hazine:10, ordu:15, halk:-10, ulema:-10} }, { n: "Tek Başına Savaş", im: {hazine:-30, ordu:-10, halk:10, ulema:10} }] },
+        { t: "Sened-i İttifak (1808)", d: "Ayanlarla güç paylaşımı yapacak mısınız? Otoriteniz sarsılabilir ama düzen gelir.", i: "https://picsum.photos/seed/treaty/800/400", o: [{ n: "İmzala", im: {hazine:5, ordu:5, halk:15, ulema:-10} }, { n: "Reddet", im: {hazine:-5, ordu:0, halk:-15, ulema:10} }] },
+        { t: "Vaka-i Hayriye (1826)", d: "Yeniçeri Ocağı'nı topa tutma vakti geldi! Devlette büyük temizlik.", i: "https://picsum.photos/seed/cannon/800/400", o: [{ n: "Ocağı Yok Et", im: {hazine:-10, ordu:-40, halk:20, ulema:30} }, { n: "Zaman Kolla", im: {hazine:-10, ordu:10, halk:-10, ulema:-10} }] },
+        { t: "Kıyafet Kanunu", d: "Halka fes giyme zorunluluğu getiriyorsunuz. Gelenekçiler ayağa kalktı.", i: "https://picsum.photos/seed/fes/800/400", o: [{ n: "Fes Giydir", im: {hazine:-5, ordu:10, halk:-15, ulema:-25} }, { n: "Serbest Bırak", im: {hazine:0, ordu:0, halk:10, ulema:15} }] },
+        { t: "Rusya İle Hünkar İskelesi", d: "Ruslarla ittifak kurup boğazları onlara açalım mı? İngilizler kuduracak!", i: "https://picsum.photos/seed/ships/800/400", o: [{ n: "Anlaş", im: {hazine:10, ordu:20, halk:-10, ulema:-5} }, { n: "Reddet", im: {hazine:-20, ordu:-10, halk:5, ulema:0} }] },
+        { t: "Tanzimat Fermanı (1839)", d: "Herkes kanun önünde eşittir. Padişah bile! İlan edilsin mi?", i: "https://picsum.photos/seed/law/800/400", o: [{ n: "Fermanı Oku", im: {hazine:5, ordu:5, halk:35, ulema:-30} }, { n: "Eski Düzen", im: {hazine:-10, ordu:0, halk:-20, ulema:20} }] },
+        { t: "İlk Telgraf Hattı", d: "İstanbul-Edirne arasına telgraf çekilmeli. Haberleşme hızlanır ama masraflı.", i: "https://picsum.photos/seed/telegraf/800/400", o: [{ n: "Hattı Kur", im: {hazine:-15, ordu:10, halk:15, ulema:0} }, { n: "Gerek Yok", im: {hazine:5, ordu:-5, halk:-5, ulema:0} }] },
+        { t: "Kırım Savaşı (1853)", d: "Rusya kutsal yerleri bahane edip saldırıyor. Topyekün savaş mı?", i: "https://picsum.photos/seed/war1/800/400", o: [{ n: "Savaşa Gir", im: {hazine:-40, ordu:30, halk:-10, ulema:10} }, { n: "Taviz Ver", im: {hazine:-10, ordu:-20, halk:-15, ulema:-5} }] },
+        { t: "İlk Dış Borç (1854)", d: "Savaş maliyeti için İngiltere'den borç alınsın mı? Bu bir tuzak olabilir.", i: "https://picsum.photos/seed/gold2/800/400", o: [{ n: "Borcu Al", im: {hazine:50, ordu:10, halk:-10, ulema:-10} }, { n: "Reddet", im: {hazine:-30, ordu:-20, halk:-5, ulema:5} }] },
+        { t: "Islahat Fermanı (1856)", d: "Azınlıklara geniş haklar veriliyor. Müslüman tebaa tepkili.", i: "https://picsum.photos/seed/reforms/800/400", o: [{ n: "Kabul Et", im: {hazine:10, ordu:5, halk:-35, ulema:-20} }, { n: "Kendi Yolun", im: {hazine:-5, ordu:0, halk:20, ulema:15} }] },
+        { t: "Darüşşafaka'nın Açılışı", d: "Yetim çocuklar için modern bir okul kurulsun mu?", i: "https://picsum.photos/seed/school/800/400", o: [{ n: "Okulu Aç", im: {hazine:-20, ordu:0, halk:30, ulema:-10} }, { n: "Eski Usul", im: {hazine:5, ordu:0, halk:-10, ulema:15} }] },
+        { t: "Avrupa Seyahati (1867)", d: "Padişah ilk kez Avrupa'ya gidiyor. Prestij mi, israf mı?", i: "https://picsum.photos/seed/europe/800/400", o: [{ n: "Gemiye Bin", im: {hazine:-15, ordu:0, halk:15, ulema:-15} }, { n: "Sarayda Kal", im: {hazine:10, ordu:0, halk:-10, ulema:5} }] },
+        { t: "Çırağan Sarayı İnşası", d: "Görkemli bir saray devleti güçlü gösterir ama hazine boş.", i: "https://picsum.photos/seed/palace2/800/400", o: [{ n: "Saray Yapılsın", im: {hazine:-35, ordu:0, halk:-20, ulema:10} }, { n: "İptal Et", im: {hazine:20, ordu:0, halk:10, ulema:-5} }] },
+        { t: "Donanma Gücü", d: "Dünyanın en güçlü donanmalarından birini inşa ediyoruz.", i: "https://picsum.photos/seed/navy/800/400", o: [{ n: "En İyisini Al", im: {hazine:-45, ordu:50, halk:-15, ulema:0} }, { n: "Küçült", im: {hazine:20, ordu:-30, halk:5, ulema:0} }] },
+        { t: "Kanun-i Esasi (1876)", d: "Meşrutiyet ilan edilsin mi? Meclis padişahın yetkilerini kısıtlayacak.", i: "https://picsum.photos/seed/constitution/800/400", o: [{ n: "Meclisi Aç", im: {hazine:-10, ordu:5, halk:40, ulema:-20} }, { n: "Reddet", im: {hazine:5, ordu:10, halk:-30, ulema:20} }] },
+        { t: "93 Harbi (1877)", d: "Ruslar Yeşilköy'e dayandı! Meclisi kapatıp yetkiyi ele alacak mısınız?", i: "https://picsum.photos/seed/war2/800/400", o: [{ n: "Meclisi Kapat", im: {hazine:10, ordu:20, halk:-25, ulema:15} }, { n: "Meclise Güven", im: {hazine:-10, ordu:-15, halk:15, ulema:-10} }] },
+        { t: "Düyun-u Umumiye", d: "Avrupalı alacaklılar gelirlere el koymak istiyor. İflas mı, taviz mi?", i: "https://picsum.photos/seed/finance/800/400", o: [{ n: "Kabul Et", im: {hazine:25, ordu:-10, halk:-20, ulema:-5} }, { n: "Direniş", im: {hazine:-40, ordu:20, halk:10, ulema:10} }] },
+        { t: "Haydarpaşa-Bağdat Hattı", d: "Almanlarla büyük demiryolu projesi. Stratejik önemi çok büyük.", i: "https://picsum.photos/seed/train/800/400", o: [{ n: "Hattı Döşe", im: {hazine:-30, ordu:20, halk:20, ulema:0} }, { n: "İptal Et", im: {hazine:15, ordu:-10, halk:-15, ulema:0} }] },
+        { t: "Hamidiye Kağıt Fabrikası", d: "Modern eğitim için kağıt lazım. Fabrikayı kuracak mısınız?", i: "https://picsum.photos/seed/factory/800/400", o: [{ n: "Fabrikayı Aç", im: {hazine:-15, ordu:0, halk:20, ulema:0} }, { n: "İthal Et", im: {hazine:-5, ordu:0, halk:-5, ulema:0} }] },
+        { t: "Osmanlı-Yunan Savaşı (1897)", d: "Atina'ya girmek üzereyiz ama Avrupa baskısı var. Duracak mıyız?", i: "https://picsum.photos/seed/battle/800/400", o: [{ n: "Savaşa Devam", im: {hazine:-15, ordu:30, halk:20, ulema:15} }, { n: "Masa Başı", im: {hazine:10, ordu:-10, halk:-5, ulema:0} }] },
+        { t: "Hicaz Demiryolu (1900)", d: "Müslümanların haccını kolaylaştıracak dev proje. İngilizler istemiyor.", i: "https://picsum.photos/seed/holy/800/400", o: [{ n: "İnşa Et", im: {hazine:-40, ordu:10, halk:25, ulema:40} }, { n: "Masraflı", im: {hazine:20, ordu:-5, halk:-15, ulema:-20} }] },
+        { t: "Aşiret Mektepleri", d: "Doğu'daki aşiret çocuklarını İstanbul'da eğitip devlete bağlayalım mı?", i: "https://picsum.photos/seed/students/800/400", o: [{ n: "Mektebi Aç", im: {hazine:-15, ordu:10, halk:15, ulema:5} }, { n: "Gerek Yok", im: {hazine:5, ordu:-10, halk:-5, ulema:0} }] },
+        { t: "II. Meşrutiyet (1908)", d: "İttihatçılar baskı yapıyor. Anayasayı tekrar ilan edelim mi?", i: "https://picsum.photos/seed/liberty/800/400", o: [{ n: "İlan Et", im: {hazine:-5, ordu:-10, halk:45, ulema:-20} }, { n: "Bastır", im: {hazine:-15, ordu:20, halk:-40, ulema:15} }] },
+        { t: "Trablusgarp Savaşı (1911)", d: "İtalya Libya'yı işgal etti. Gönüllü subay gönderelim mi?", i: "https://picsum.photos/seed/desert/800/400", o: [{ n: "Subayları Gönder", im: {hazine:-10, ordu:25, halk:20, ulema:5} }, { n: "Toprağı Feda Et", im: {hazine:15, ordu:-20, halk:-30, ulema:-10} }] },
+        { t: "Balkan Harbi", d: "Balkan devletleri birleşip saldırdı! Topyekün seferberlik mi?", i: "https://picsum.photos/seed/balkan/800/400", o: [{ n: "Savaş", im: {hazine:-40, ordu:20, halk:-30, ulema:10} }, { n: "Geri Çekil", im: {hazine:-20, ordu:-20, halk:-10, ulema:-10} }] },
+        { t: "Cihan Harbi (1914)", d: "Geri dönüşü olmayan yol! Almanlarla savaşa giriyor muyuz?", i: "https://picsum.photos/seed/ww1/800/400", o: [{ n: "Savaşa Gir!", im: {hazine:-60, ordu:50, halk:-50, ulema:30} }, { n: "Tarafsız Kal", im: {hazine:-30, ordu:-15, halk:10, ulema:-10} }] }
+    ];
+
+    function acMektubu() {
+        document.getElementById('rulo').style.display = 'none';
+        const m = document.getElementById('mektup');
+        m.classList.add('active');
+        yukleOlay();
+    }
+
+    function yukleOlay() {
+        if(step >= scenarios.length) { bitir("Devlet-i Ebed Müddet Sizinle Yaşadı!"); return; }
+        const s = scenarios[step];
+        document.getElementById('title').innerText = s.t;
+        document.getElementById('event-img').src = s.i;
+        document.getElementById('desc').innerText = s.d;
+        const box = document.getElementById('choices');
+        box.innerHTML = "";
+        s.o.forEach(opt => {
+            const b = document.createElement('button');
+            b.className = "choice-btn";
+            b.innerText = opt.n;
+            b.onclick = () => karar(opt.im);
+            box.appendChild(b);
+        });
+    }
+
+    function karar(impact) {
+        for(let key in impact) {
+            stats[key] = Math.min(100, Math.max(0, stats[key] + impact[key]));
+        }
+        updateUI();
+        if(stats.hazine <= 0 || stats.halk <= 0 || stats.ordu <= 0) {
+            bitir("Devlet Çöktü! Hükmünüz Sona Erdi.");
+            return;
+        }
+        step++;
+        document.getElementById('mektup').classList.remove('active');
+        setTimeout(() => { document.getElementById('rulo').style.display = 'flex'; }, 600);
+    }
+
+    function updateUI() {
+        document.getElementById('hazine').innerText = stats.hazine;
+        document.getElementById('ordu').innerText = stats.ordu;
+        document.getElementById('halk').innerText = stats.halk;
+        document.getElementById('ulema').innerText = stats.ulema;
+    }
+
+    function bitir(msg) {
+        document.getElementById('mektup').innerHTML = `<h1>OYUN BİTTİ</h1><p>${msg}</p><div id="final-credits">Questions by Hacer, Arda<br>Developed by Ata<br>Conduct by Nadir Eymen</div><button class="choice-btn" onclick="location.reload()" style="margin-top:20px">YENİDEN BAŞLA</button>`;
+        document.getElementById('mektup').classList.add('active');
+        document.getElementById('rulo').style.display = 'none';
+    }
+
+    updateUI();
+</script>
+
+</body>
+</html>
